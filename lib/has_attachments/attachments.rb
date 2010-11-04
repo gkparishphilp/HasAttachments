@@ -17,7 +17,7 @@ module HasAttachments #:nodoc:
 				
 				for attachment_type in args do
 					attachment_type = attachment_type.to_s
-					
+					return if self.respond_to? attachment_type
 					# refactor out to a singular? method on String
 					if attachment_type.singularize == attachment_type
 						self.class_eval do

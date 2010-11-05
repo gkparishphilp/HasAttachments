@@ -25,7 +25,7 @@ class Attachment < ActiveRecord::Base
 		directory = "#{RAILS_ROOT}/public/system/attachments/"
 		Dir.mkdir( directory ) unless File.exists? directory
 		
-		directory += "#{attachment.owner_type}/"
+		directory += "#{attachment.owner_type.pluralize.downcase}/"
 		Dir.mkdir( directory ) unless File.exists? directory
 		
 		directory += "#{attachment.owner_id}/"

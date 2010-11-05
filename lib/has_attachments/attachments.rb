@@ -42,11 +42,17 @@ module HasAttachments #:nodoc:
 				"I Have Attachments!!!!!"
 			end
 			
-			# method missing
-			# attach_?
-				# create attachment for owner with type = ?
-			# attached_?
-				# return self.?
+			def method_missing( m, *args )
+				if m.to_s[/attach_(.+)/]
+					type = $1
+					obj = args.first
+					self.attachments.create :attachment_type => $1
+				elsif  m.to_s[/attached_(.+)/]
+					return eval "self.#{$1}" #  || self.attachments.by_type $1
+				else
+					super
+				end
+			end
 			
 		end
 	

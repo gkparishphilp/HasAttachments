@@ -6,6 +6,7 @@ class AttachmentsMigration < ActiveRecord::Migration
 			t.string		:name
 			t.string		:format
 			t.string		:path
+			t.string		:filesize
 			t.string		:origin
 			t.string		:ip
 			t.string		:status, :default => 'active'

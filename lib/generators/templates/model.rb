@@ -14,6 +14,45 @@ class Attachment < ActiveRecord::Base
 		where( "created_at > ?", since )
 	end
 	
+	def self.create_from_upload( upload, type, opts={} )
+		ext = upload.original_filename.match( /\.\w*$/ ).to_s # a period, any number of word chars, then eol
+		#should have some way to validate
+		# but oh well....
+		attachment = Attachment.new :name => upload.original_filename, :format => ext, :attachment_type => type
+		attachment.owner = opts[:owner] if opts[:owner]
+		attachment.save
+		
+		directory = "#{RAILS_ROOT}/public/system/attachments/"
+		Dir.mkdir( directory ) unless File.exists? directory
+		
+		directory += "#{attachment.owner_type}"
+		Dir.mkdir( directory ) unless File.exists? directory
+		
+		directory += "#{attachment.owner_id}"
+		Dir.mkdir( directory ) unless File.exists? directory
+		
+		directory += "#{attachment.attachment_type.pluralize}"
+		Dir.mkdir( directory ) unless File.exists? directory
+		
+		directory += "#{attachment.id}"
+		Dir.mkdir( directory ) unless File.exists? directory
+		
+		name = attachment.name
+		path = File.join( directory, name )
+		post = File.open( path,"wb" ) { |f| f.write( upload.read ) }
+
+		filesize = File.size( path )
+		
+		attachment.update_attributes :path => path, :filesize => filesize
+		
+		return attachment
+		
+	end
+	
+	def self.create_from_url( url )
+		
+	end
+	
 	# instance methods
 	def active?
 		self.status == 'active'

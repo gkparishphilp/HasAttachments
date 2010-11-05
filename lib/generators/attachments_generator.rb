@@ -26,5 +26,12 @@ class AttachmentsGenerator < Rails::Generators::Base
 	def create_model
 		template "model.rb", File.join( 'app/models', "attachment.rb" )
 	end
+	
+	def create_directory
+		directory = "#{RAILS_ROOT}/public/system/"
+		Dir.mkdir( directory ) unless File.exists? directory
+		directory += "attachments/"
+		Dir.mkdir( directory ) unless File.exists? directory
+	end
   
 end

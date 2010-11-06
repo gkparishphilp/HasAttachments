@@ -4,6 +4,7 @@ require 'rails/generators/migration'
 class AttachmentsGenerator < Rails::Generators::Base
   
 	include Rails::Generators::Migration
+	include HasAttachments::AttachmentLib
   
 	def self.source_root
 		@source_root ||= File.join(File.dirname(__FILE__), 'templates')
@@ -27,11 +28,13 @@ class AttachmentsGenerator < Rails::Generators::Base
 		template "model.rb", File.join( 'app/models', "attachment.rb" )
 	end
 	
-	def create_directory
-		directory = "#{RAILS_ROOT}/public/system/"
-		Dir.mkdir( directory ) unless File.exists? directory
-		directory += "attachments/"
-		Dir.mkdir( directory ) unless File.exists? directory
+	def create_initializer
+		template "initializer.rb", File.join( 'config/initializers', "attachments.rb" )
+	end
+	
+	def create_directories
+		create_directory PUBLIC_ATTACHMENT_PATH unless File.exists? PUBLIC_ATTACHMENT_PATH
+		create_directory PRIVATE_ATTACHMENT_PATH unless File.exists? PRIVATE_ATTACHMENT_PATH || PRIVATE_ATTACHMENT_PATH.blank?
 	end
   
 end

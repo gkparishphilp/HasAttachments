@@ -22,20 +22,12 @@ class Attachment < ActiveRecord::Base
 		attachment.owner = opts[:owner] if opts[:owner]
 		attachment.save
 		
-		directory = "#{RAILS_ROOT}/public/system/attachments/"
-		Dir.mkdir( directory ) unless File.exists? directory
+		directory = "#{PUBLIC_ATTACHMENT_PATH}"
+		directory = "#{PRIVATE_ATTACHMENT_PATH}" if opts[:private] == 'true'
 		
-		directory += "#{attachment.owner_type.pluralize.downcase}/"
-		Dir.mkdir( directory ) unless File.exists? directory
+		directory += "/#{attachment.owner_type.pluralize}/#{attachment.owner_id}/#{attachment.attachment_type.pluralize}/#{attachment.id}/"
 		
-		directory += "#{attachment.owner_id}/"
-		Dir.mkdir( directory ) unless File.exists? directory
-		
-		directory += "#{attachment.attachment_type.pluralize}/"
-		Dir.mkdir( directory ) unless File.exists? directory
-		
-		directory += "#{attachment.id}/"
-		Dir.mkdir( directory ) unless File.exists? directory
+		directory = create_directory( directory )
 		
 		name = attachment.name
 		path = File.join( directory, name )
@@ -61,5 +53,7 @@ class Attachment < ActiveRecord::Base
 	def delete!
 		self.update_attribute( :status => 'deleted' )
 	end
-  
+	
+	
+	
 end

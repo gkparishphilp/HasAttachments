@@ -32,9 +32,5 @@ class AttachmentsGenerator < Rails::Generators::Base
 		template "initializer.rb", File.join( 'config/initializers', "attachments.rb" )
 	end
 	
-	def create_directories
-		create_directory PUBLIC_ATTACHMENT_PATH unless File.exists? PUBLIC_ATTACHMENT_PATH
-		create_directory PRIVATE_ATTACHMENT_PATH unless File.exists? PRIVATE_ATTACHMENT_PATH || PRIVATE_ATTACHMENT_PATH.blank?
-	end
-  
+
 end

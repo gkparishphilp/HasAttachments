@@ -7,28 +7,47 @@ module HasAttachments #:nodoc:
 
 		module ClassMethods
 			# Class methods go here
-			def has_attached( *args )
-				args.flatten! if args
-				args.compact! if args
+			def has_attached( attachment_type, opts = {} )
+
 				include HasAttachments::Attachments::InstanceMethods
 				include HasAttachments::AttachmentLib
 				
 				has_many :attachments, :as => :owner, :dependent => :destroy
-				
-				for attachment_type in args do
-					attachment_type = attachment_type.to_s
-					return if self.respond_to? attachment_type
+
+				attachment_type = attachment_type.to_s
+				unless self.respond_to? attachment_type
 					# refactor out to a singular? method on String
 					if attachment_type.singularize == attachment_type
 						self.class_eval do
-							has_one "#{attachment_type}".to_sym, :as => :owner, :dependent => :destroy, :class_name => "Attachment", :conditions => [ "attachment_type = ?", attachment_type.singularize ]
+							has_one "#{attachment_type}".to_sym, :as => :owner, :dependent => :destroy, :class_name => "Attachment", :conditions => [ "attachment_type = ?", attachment_type ]
 						end
 					else
 						self.class_eval do
-							has_many "#{attachment_type}".to_sym, :as => :owner, :dependent => :destroy, :class_name => "Attachment", :conditions => [ "attachment_type = ?", attachment_type.singularize ]
+							has_many "#{attachment_type}".to_sym, :as => :owner, :dependent => :destroy, :class_name => "Attachment", :conditions => [ "attachment_type = ?", attachment_type ]
 						end
-					end
-					
+					end	
+				end
+				
+				if opts[:private] == 'true'
+					self.class_eval <<-END
+						def #{attachment_type}_path
+							return PRIVATE_ATTACHMENT_PATH
+						end
+					END
+				else
+					self.class_eval <<-END
+						def #{attachment_type}_path
+							return PUBLIC_ATTACHMENT_PATH
+						end
+					END
+				end
+				
+				if opts[:validate]
+					Attachment.instance_eval <<-END
+						def sparkle
+							"happy sparkles"
+						end
+					END
 				end
 				
 			end

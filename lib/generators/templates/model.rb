@@ -22,7 +22,11 @@ class Attachment < ActiveRecord::Base
 		attachment.owner = opts[:owner] if opts[:owner]
 		attachment.save
 		
+		# use public save path by default
 		directory = "#{PUBLIC_ATTACHMENT_PATH}"
+		# unless the parent object has declared a default path for this attachment_type
+		directory = eval "self.owner.#{self.attachment_type}_path" if self.owner.respond_to? "#{self.attachment_type}_path"
+		# but a specific private request to this method trumps either
 		directory = "#{PRIVATE_ATTACHMENT_PATH}" if opts[:private] == 'true'
 		
 		directory += "/#{attachment.owner_type.pluralize}/#{attachment.owner_id}/#{attachment.attachment_type.pluralize}/#{attachment.id}/"

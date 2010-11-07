@@ -42,11 +42,17 @@ module HasAttachments #:nodoc:
 					END
 				end
 				
-				if opts[:validate]
-					Attachment.instance_eval <<-END
-						def sparkle
-							"happy sparkles"
+				if opts[:formats]
+					Attachment.class_eval <<-END
+						def validate_format
+							unless #{opts[:formats]}.include? self.format
+								self.errors.add( :format, "invalid format" ) 
+								return false
+							end
 						end
+					END
+					Attachment.instance_eval <<-END
+						before_save :validate_format
 					END
 				end
 				

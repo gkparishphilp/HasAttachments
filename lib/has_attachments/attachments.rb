@@ -44,7 +44,7 @@ module HasAttachments #:nodoc:
 				
 				if opts[:formats]
 					Attachment.class_eval <<-END
-						def validate_format
+						def validate_#{attachment_type}_format
 							unless #{opts[:formats]}.include? self.format
 								self.errors.add( :format, "invalid format" ) 
 								return false
@@ -52,7 +52,7 @@ module HasAttachments #:nodoc:
 						end
 					END
 					Attachment.instance_eval <<-END
-						before_save :validate_format
+						before_save :validate_#{attachment_type}_format
 					END
 				end
 				

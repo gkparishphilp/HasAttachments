@@ -20,28 +20,31 @@ class Attachment < ActiveRecord::Base
 		# but oh well....
 		attachment = Attachment.new :name => upload.original_filename, :format => ext, :attachment_type => type
 		attachment.owner = opts[:owner] if opts[:owner]
-		attachment.save
 		
-		# use public save path by default
-		directory = "#{PUBLIC_ATTACHMENT_PATH}"
-		# unless the parent object has declared a default path for this attachment_type
-		directory = eval "self.owner.#{self.attachment_type}_path" if self.owner.respond_to? "#{self.attachment_type}_path"
-		# but a specific private request to this method trumps either
-		directory = "#{PRIVATE_ATTACHMENT_PATH}" if opts[:private] == 'true'
+		if attachment.save
+			# use public save path by default
+			directory = "#{PUBLIC_ATTACHMENT_PATH}"
+			# unless the parent object has declared a default path for this attachment_type
+			directory = eval "self.owner.#{self.attachment_type}_path" if self.owner.respond_to? "#{self.attachment_type}_path"
+			# but a specific private request to this method trumps either
+			directory = "#{PRIVATE_ATTACHMENT_PATH}" if opts[:private] == 'true'
 		
-		directory += "/#{attachment.owner_type.pluralize}/#{attachment.owner_id}/#{attachment.attachment_type.pluralize}/#{attachment.id}/"
+			directory += "/#{attachment.owner_type.pluralize}/#{attachment.owner_id}/#{attachment.attachment_type.pluralize}/#{attachment.id}/"
 		
-		directory = create_directory( directory )
+			directory = create_directory( directory )
 		
-		name = attachment.name
-		path = File.join( directory, name )
-		post = File.open( path,"wb" ) { |f| f.write( upload.read ) }
+			name = attachment.name
+			path = File.join( directory, name )
+			post = File.open( path,"wb" ) { |f| f.write( upload.read ) }
 
-		filesize = File.size( path )
+			filesize = File.size( path )
 		
-		attachment.update_attributes :path => path, :filesize => filesize
+			attachment.update_attributes :path => path, :filesize => filesize
 		
-		return attachment
+			return attachment
+		else
+			return false
+		end
 		
 	end
 	

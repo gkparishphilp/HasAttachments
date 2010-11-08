@@ -42,17 +42,42 @@ module HasAttachments #:nodoc:
 					END
 				end
 				
+				# There has to be a better way to do this....
+				# The problem is that validations apply on an instance-by-instance basis, but 
+				# they are implemented at the class level.  So, I'm just hacking together a custom
+				# before_save filter and calling it only if the object's type matches
 				if opts[:formats]
 					Attachment.class_eval <<-END
+						# Just in case we need to access or print them...
+						def valid_#{attachment_type}_formats
+							return #{opts[:formats]}
+						end
 						def validate_#{attachment_type}_format
 							unless #{opts[:formats]}.include? self.format
 								self.errors.add( :format, "invalid format" ) 
 								return false
+							else
+								return true
 							end
 						end
 					END
 					Attachment.instance_eval <<-END
-						before_save :validate_#{attachment_type}_format
+						validate :validate_#{attachment_type}_format, :if => "self.attachment_type == '#{attachment_type}'"
+					END
+				end
+				
+				# currently has_attached :photos, :process => { :with => 'gimp' }, etc. syntax
+				if opts[:process]
+					Attachment.class_eval <<-END
+						def process_#{attachment_type}
+							msg = "processed #{attachment_type} with: #{opts[:process][:with]}"
+							directory = "#{RAILS_ROOT}/public/system/attachments"
+							path = File.join( directory, filename )
+							post = File.open( path,"wb" ) { |f| f.write( "Ha ha ha haha" ) }
+						end
+					END
+					Attachment.instance_eval <<-END
+						after_save :process_#{attachment_type}, :if => "self.attachment_type == '#{attachment_type}'"
 					END
 				end
 				

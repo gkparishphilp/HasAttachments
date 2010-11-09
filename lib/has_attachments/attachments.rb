@@ -66,19 +66,19 @@ module HasAttachments #:nodoc:
 					END
 				end
 				
-				# currently has_attached :photos, :process => { :with => 'gimp' }, etc. syntax
 				if opts[:process]
-					Attachment.class_eval <<-END
-						def process_#{attachment_type}
-							msg = "processed #{attachment_type} with: #{opts[:process][:with]}"
-							directory = "#{RAILS_ROOT}/public/system/attachments"
-							path = File.join( directory, filename )
-							post = File.open( path,"wb" ) { |f| f.write( "Ha ha ha haha" ) }
-						end
-					END
-					Attachment.instance_eval <<-END
-						after_save :process_#{attachment_type}, :if => "self.attachment_type == '#{attachment_type}'"
-					END
+					for action, styles in opts[:process] do
+						# define these in the Attachment Model as process_action methods e.g. process_resize, process_transcode, etc.
+						Attachment.class_eval <<-END
+							def call_process_#{action}
+								process_#{action}( #{styles} )
+							end
+	
+						END
+						Attachment.instance_eval <<-END
+							after_save :call_process_#{action}, :if => "self.attachment_type == '#{attachment_type}'"
+						END
+					end
 				end
 				
 			end

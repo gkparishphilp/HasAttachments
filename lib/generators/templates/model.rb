@@ -17,10 +17,13 @@ class Attachment < ActiveRecord::Base
 		where( "created_at > ?", since )
 	end
 	
-	def self.create_from_upload( upload, type, opts={} )
-		ext = upload.original_filename.match( /\w+$/ ).to_s # a period, any number of word chars, then eol
-		name = upload.original_filename.match( /\w+\./ ).to_s.chop
-		
+	def self.create_from_resource( resource, type, opts={} )
+		if resource =~ /\Ahttp:\/\//
+			name, ext = Attachment.new.parse_name( resource )
+		else
+			name, ext = Attachment.new.parse_name( resource.original_filename )
+		end
+
 		attachment = Attachment.new :name => name, :format => ext, :attachment_type => type
 		attachment.owner = opts[:owner] if opts[:owner]
 		
@@ -29,7 +32,13 @@ class Attachment < ActiveRecord::Base
 		
 			name = "#{attachment.name}.#{attachment.format}"
 			write_path = File.join( path, name )
-			post = File.open( write_path,"wb" ) { |f| f.write( upload.read ) }
+			if resource =~ /\Ahttp:\/\//
+				image = MiniMagick::Image.open( resource )
+				image.write( write_path )
+			else
+				post = File.open( write_path,"wb" ) { |f| f.write( resource.read ) }
+			end
+			
 			filesize = File.size( write_path )
 		
 			attachment.filesize = filesize
@@ -41,9 +50,6 @@ class Attachment < ActiveRecord::Base
 		return attachment
 	end
 	
-	def self.create_from_url( url )
-		
-	end
 	
 	# instance methods
 	def location( style=nil )
@@ -88,6 +94,22 @@ class Attachment < ActiveRecord::Base
 		end
 	end
 	
+	def parse_name( name )
+		# gets the file-name and file-extension from a url or filepath
+		if name =~ /\Ahttp:\/\//
+			full_name = name.match( /[\w?.-]+\z/ ).to_s
+			full_name.gsub!( /\?.+\z/, "" ) #try to strip args if any
+		else
+			# one or more digit, word char, parens, or dash, then a dot, then one or more any char then end of string
+			full_name = name.match( /[\d\w\(\)-]+\..+\z/ ).to_s 
+		end
+	
+		ext = full_name.match( /\w+\z/ ).to_s # any number of word chars following non-word (ie period), then eol
+		name = full_name.match( /[\d\w-]+\./ ).to_s.chop
+
+		return name, ext
+	
+	end
 	
 	
 end

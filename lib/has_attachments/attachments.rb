@@ -71,7 +71,7 @@ module HasAttachments #:nodoc:
 						# define these in the Attachment Model as process_action methods e.g. process_resize, process_transcode, etc.
 						Attachment.class_eval <<-END
 							def call_process_#{action}
-								process_#{action}( #{styles} )
+								process_#{action}( #{styles})
 							end
 	
 						END
@@ -88,8 +88,8 @@ module HasAttachments #:nodoc:
 		module InstanceMethods
 			# Put instance methods here
 			
-			def attachment_skwawk
-				"I Have Attachments!!!!!"
+			def has_attachments?
+				return ( self.attachments.count > 0 ) ? true : false
 			end
 			
 			def method_missing( m, *args )
@@ -97,8 +97,10 @@ module HasAttachments #:nodoc:
 					type = $1
 					obj = args.first
 					self.attachments.create :attachment_type => $1
+				elsif m.to_s[/has_attached_(.+)\?/]
+					return ( self.attachments.by_type( $1 ).count > 0 ) ? true : false
 				elsif  m.to_s[/attached_(.+)/]
-					return eval "self.#{$1}" #  || self.attachments.by_type $1
+					return self.attachments.by_type( $1 ) #eval "self.#{$1}"
 				else
 					super
 				end

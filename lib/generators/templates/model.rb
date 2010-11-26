@@ -91,23 +91,47 @@ class Attachment < ActiveRecord::Base
 		
 			ext_name = "#{name}.#{ext}"
 			write_path = File.join( path, ext_name )
+			
+			self.trash( path )
+			
 			if resource =~ /\Ahttp:\/\//
 				image = MiniMagick::Image.open( resource )
 				image.write( write_path )
 			else
-				tmp_path = "#{path}tmp"
-				create_directory("#{path}tmp") unless File.directory? tmp_path
-				FileUtils.mv Dir.glob("#{path}*.*"), tmp_path
-				post = File.open( write_path,"wb" ) { |f| f.write( resource.read ) } ? FileUtils.rm_r(tmp_path) : FileUtils.mv(Dir.glob("#{tmp_path}/*.*"), path)
+				post = File.open( write_path,"wb" ) { |f| f.write( resource.read ) }
 			end
 			
-			filesize = File.size( write_path )
-		
-			self.update_attributes :filesize => filesize, :path => path, :name => name, :format => ext
+			if filesize = File.size( write_path ) # the write was successful
+				self.empty_trash( path )
+				self.update_attributes :filesize => filesize, :path => path, :name => name, :format => ext
+			else
+				self.retore_trash( path )
+			end
 		end
 		
 		return self
 		
+	end
+	
+	def trash( path )
+		# takes contents of passed dir and moves them to a temp location in preparation
+		# for deletion
+		tmp_path = "#{path}tmp"
+		create_directory( tmp_path )
+		FileUtils.mv Dir.glob( "#{path}*.*" ), tmp_path
+	end
+	
+	def empty_trash( path )
+		# actually nukes trashed files
+		tmp_path = "#{path}tmp"
+		FileUtils.rm_r ( tmp_path )
+	end
+	
+	def restore_trash( path )
+		# restores trashed files to their original location
+		tmp_path = "#{path}tmp"
+		FileUtils.mv Dir.glob( "#{tmp_path}*.*" ), path
+		FileUtils.rm_r ( tmp_path )
 	end
 	
 	def create_path( opts={} )
@@ -127,8 +151,14 @@ class Attachment < ActiveRecord::Base
 		self.status == 'active'
 	end
 	
-	def delete!
-		self.update_attribute( :status => 'deleted' )
+	def nuke
+		self.update_attributes( :status => 'deleted' )
+	end
+	
+	def nuke!
+		self.update_attributes( :status => 'deleted' )
+		self.trash( self.path )
+		self.empty_trash( self.path )
 	end
 	
 	def process_resize( styles )

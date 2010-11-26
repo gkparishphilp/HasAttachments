@@ -28,7 +28,6 @@ module HasAttachments #:nodoc:
 					end	
 				end
 				
-				
 				if opts[:private] == true
 					self.class_eval <<-END
 						def #{attachment_type}_path
@@ -66,6 +65,7 @@ module HasAttachments #:nodoc:
 						validate :validate_#{attachment_type}_format, :if => "self.attachment_type == '#{attachment_type}'"
 					END
 				end
+				
 				
 				if opts[:process]
 					for action, styles in opts[:process] do

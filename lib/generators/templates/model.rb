@@ -27,6 +27,13 @@ class Attachment < ActiveRecord::Base
 		attachment = Attachment.new :name => name, :format => ext, :attachment_type => type
 		attachment.owner = opts[:owner] if opts[:owner]
 		
+		if opts[:remote] == 'true'
+			attachment.remote = true
+			attachment.path = resource
+			attachment.save if attachment.valid?
+			return attachment
+		end
+		
 		if attachment.valid?
 			path = attachment.create_path( opts )
 		
@@ -52,9 +59,55 @@ class Attachment < ActiveRecord::Base
 	
 	
 	# instance methods
-	def location( style=nil )
-		path = self.path.gsub( /\A.+public/, "" )
-		style ? "#{path}#{self.name}_#{style}.#{self.format}" : "#{self.path}#{self.name}.#{self.format}"
+	def location( style=nil, opts={} )
+		if self.remote
+			return self.path
+		end
+		rel_path = self.path
+		rel_path = self.path.gsub( /\A.+public/, "" ) unless opts[:full] == true
+		style ? "#{rel_path}#{self.name}_#{style}.#{self.format}" : "#{rel_path}#{self.name}.#{self.format}"
+	end
+	
+	
+	def update_from_resource( resource, opts={} )
+		
+		self.remote = false
+		
+		if opts[:remote] == 'true'
+			self.remote = true
+			self.path = resource
+			self.save if self.valid?
+			return self
+		end
+		
+		if resource =~ /\Ahttp:\/\//
+			name, ext = self.parse_name( resource )
+		else
+			name, ext = self.parse_name( resource.original_filename )
+		end
+		
+		if self.valid?
+			path = self.create_path( opts )
+		
+			ext_name = "#{name}.#{ext}"
+			write_path = File.join( path, ext_name )
+			if resource =~ /\Ahttp:\/\//
+				image = MiniMagick::Image.open( resource )
+				image.write( write_path )
+			else
+				tmp_path = "#{path}tmp"
+				create_directory("#{path}tmp") unless File.directory? tmp_path
+				FileUtils.mv Dir.glob("#{path}*.*"), tmp_path
+				post = File.open( write_path,"wb" ) { |f| f.write( resource.read ) } ? FileUtils.rm_r(tmp_path) : FileUtils.mv(Dir.glob("#{tmp_path}/*.*"), path)
+			end
+			
+			filesize = File.size( write_path )
+		
+			self.update_attributes :filesize => filesize, :path => path, :name => name, :format => ext
+		end
+		
+		return self
+		
 	end
 	
 	def create_path( opts={} )
@@ -80,6 +133,7 @@ class Attachment < ActiveRecord::Base
 	
 	def process_resize( styles )
 		for style_name, style_detail in styles
+			
 			directory = self.path
 			orig_filename = "#{self.name}.#{self.format}"
 			output_filename = "#{self.name}_#{style_name}.#{self.format}"
@@ -103,9 +157,8 @@ class Attachment < ActiveRecord::Base
 			# one or more digit, word char, parens, or dash, then a dot, then one or more any char then end of string
 			full_name = name.match( /[\d\w\(\)-]+\..+\z/ ).to_s 
 		end
-	
-		ext = full_name.match( /\w+\z/ ).to_s # any number of word chars following non-word (ie period), then eol
-		name = full_name.match( /[\d\w-]+\./ ).to_s.chop
+		ext = full_name.match( /\w+\z/ ).to_s.downcase # any number of word chars following non-word (ie period), then eol
+		name = full_name.match( /[_ ',;:+=|()!\?\d\w-]+\./ ).to_s.chop.downcase
 
 		return name, ext
 	

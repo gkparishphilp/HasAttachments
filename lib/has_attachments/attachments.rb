@@ -28,7 +28,8 @@ module HasAttachments #:nodoc:
 					end	
 				end
 				
-				if opts[:private] == 'true'
+				
+				if opts[:private] == true
 					self.class_eval <<-END
 						def #{attachment_type}_path
 							return PRIVATE_ATTACHMENT_PATH
@@ -71,13 +72,23 @@ module HasAttachments #:nodoc:
 						# define these in the Attachment Model as process_action methods e.g. process_resize, process_transcode, etc.
 						Attachment.class_eval <<-END
 							def call_process_#{action}
-								process_#{action}( #{styles})
+								process_#{action}( #{styles}) unless self.remote
 							end
 	
 						END
 						Attachment.instance_eval <<-END
 							after_save :call_process_#{action}, :if => "self.attachment_type == '#{attachment_type}'"
 						END
+						# just for giggles, let's see if we can add the widths as instance methods
+						for style_name, style_detail in styles
+							Attachment.class_eval <<-END
+								def #{style_name}_width
+									return #{style_detail}
+								end
+							END
+							# hah aaha ha that worked, and I'm totally hammered!
+						end
+						
 					end
 				end
 				

@@ -9,6 +9,7 @@ class AttachmentsMigration < ActiveRecord::Migration
 			t.string		:filesize
 			t.string		:origin
 			t.string		:ip
+			t.boolean		:remote, :default => false
 			t.string		:status, :default => 'active'
 			
 			t.timestamps
